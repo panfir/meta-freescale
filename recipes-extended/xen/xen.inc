@@ -7,7 +7,7 @@ LIC_FILES_CHKSUM = "file://COPYING;md5=4295d895d4b5ce9d070263d52f030e49"
 
 COMPATIBLE_HOST = '(x86_64.*).*-linux|aarch64.*-linux|arm-.*-linux-gnueabi'
 
-inherit autotools-brokensep setuptools update-rc.d systemd deploy
+inherit autotools-brokensep setuptools3 update-rc.d systemd deploy
 
 require xen-arch.inc
 
@@ -47,7 +47,7 @@ DEPENDS = " \
     pciutils \
     pixman \
     procps \
-    python \
+    python3 \
     libaio \
     lzo \
     util-linux \
@@ -105,12 +105,12 @@ RDEPENDS_${PN}-fsimage = " \
 
 RDEPENDS_${PN}-misc = " \
     perl \
-    python \
+    python3-core \
     "
 
 RDEPENDS_${PN}-remus = " \
     bash \
-    python \
+    python3-core \
     "
 
 RDEPENDS_${PN}-scripts-block = "\
@@ -147,7 +147,7 @@ RDEPENDS_${PN}-xendomains = "\
 
 RDEPENDS_${PN}-xl = "libgcc"
 
-RDEPENDS_${PN}-xentrace = "python"
+RDEPENDS_${PN}-xentrace = "python3-core"
 
 RDEPENDS_${PN}-xen-watchdog = "bash"
 
@@ -208,7 +208,7 @@ PACKAGES = "\
     ${PN}-livepatch \
     ${PN}-misc \
     ${PN}-pygrub \
-    ${PN}-python \
+    ${PN}-python3 \
     ${PN}-qemu \
     ${PN}-remus \
     ${PN}-scripts-block \
@@ -240,8 +240,8 @@ FILES_${PN}-dbg += "\
     ${libdir}/.debug \
     ${libdir}/debug/* \
     ${libdir}/xen/bin/.debug \
-    ${libdir}/python2.7/site-packages/.debug \
-    ${libdir}/python2.7/site-packages/xen/lowlevel/.debug \
+    ${libdir}/python3.8/site-packages/.debug \
+    ${libdir}/python3.8/site-packages/xen/lowlevel/.debug \
     ${libdir}/fs/xfs/.debug \
     ${libdir}/fs/ufs/.debug \
     ${libdir}/fs/ext2fs-lib/.debug \
@@ -254,8 +254,8 @@ FILES_${PN}-dbg += "\
     ${libdir}exec/.debug \
     ${libdir}/xen/libexec/.debug \
     ${bindir}/.debug \
-    ${libdir}/python2.7/dist-packages/.debug \
-    ${libdir}/python2.7/dist-packages/xen/lowlevel/.debug \
+    ${libdir}/python3.8/dist-packages/.debug \
+    ${libdir}/python3.8/dist-packages/xen/lowlevel/.debug \
     "
 
 FILES_${PN}-dev = "\
@@ -532,8 +532,8 @@ FILES_${PN}-pygrub = "\
     ${libdir}/xen/bin/pygrub \
     "
 
-FILES_${PN}-python = "\
-    ${libdir}/python2.7 \
+FILES_${PN}-python3 = "\
+    ${libdir}/python3.8 \
     "
 
 INSANE_SKIP_${PN} = "already-stripped"
@@ -852,8 +852,8 @@ libexecdir = "${libdir}"
 export XEN_OS = "Linux"
 
 # this is used for the header (#!${bindir}/python) of the install python scripts
-export PYTHONPATH="${bindir}/python"
-export ac_cv_path_PYTHONPATH="${bindir}/python"
+export PYTHONPATH="${bindir}/python3"
+export ac_cv_path_PYTHONPATH="${bindir}/python3"
 export DISTUTILS_BUILD_ARGS
 export DISTUTILS_INSTALL_ARGS
 
@@ -880,8 +880,8 @@ CPP_append = " ${CPPFLAGS}"
 CXX_append = " ${CXXFLAGS}"
 
 EXTRA_OECONF += " \
-    --exec-prefix=${prefix} \
-    --prefix=${prefix} \
+    --exec-prefix=/usr \
+    --prefix=/usr \
     --host=${HOST_SYS} \
     --with-systemd=${systemd_unitdir}/system \
     --with-systemd-modules-load=${systemd_unitdir}/modules-load.d \
@@ -1003,6 +1003,8 @@ do_configure() {
     fi
 }
 
+B = "${S}"
+
 do_compile() {
     # workaround for build bug when CFLAGS is exported
     # https://www.mail-archive.com/xen-devel@lists.xen.org/msg67822.html
@@ -1064,6 +1066,11 @@ do_install() {
     if [ -e ${D}${systemd_unitdir}/system/xen-qemu-dom0-disk-backend.service ]; then
         sed -i 's#ExecStart=.*qemu-system-i386\(.*\)$#ExecStart=/usr/bin/qemu-system-i386\1#' \
             ${D}${systemd_unitdir}/system/xen-qemu-dom0-disk-backend.service
+    fi
+
+    # fix python of xencov_split file
+    if ! grep -qm1 "python3" ${D}/usr/bin/xencov_split; then
+        sed -i '1!b;s/python/python3/' ${D}/usr/bin/xencov_split
     fi
 }
 
